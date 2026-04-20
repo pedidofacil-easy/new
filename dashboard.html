@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Dashboard - PedidoFácil Entregador</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="manifest.json">
+</head>
+<body>
+    <div class="header">
+        <h1>
+            🛵 PedidoFácil
+            <span class="status-online" id="statusBtn" style="cursor:pointer;">🔴 Offline</span>
+        </h1>
+    </div>
+    
+    <div class="content" id="content">
+        <div id="pedidosContainer" style="text-align: center; padding: 40px; color: #999;">
+            Carregando...
+        </div>
+    </div>
+    
+    <div class="bottom-nav">
+        <a href="dashboard.html" class="nav-item active">
+            <span>📋</span>
+            Pedidos
+        </a>
+        <a href="pedido-ativo.html" class="nav-item">
+            <span>🟡</span>
+            Ativo
+        </a>
+        <a href="historico.html" class="nav-item">
+            <span>💰</span>
+            Ganhos
+        </a>
+    </div>
+    
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-app.js";
+        import { getFirestore, collection, query, where, getDocs, updateDoc, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-firestore.js";
+        
+        const firebaseConfig = {
+            apiKey: "AIzaSyA8qo7qFYXlqEriMBeyoyELwtiRPGxpVc4",
+            authDomain: "lanchepodpah.firebaseapp.com",
+            projectId: "lanchepodpah",
+            storageBucket: "lanchepodpah.firebasestorage.app",
+            messagingSenderId: "451860544292",
+            appId: "1:451860544292:web:4dbbe9c0c53e8cd0cf91b1"
+        };
+        
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        
+        const entregador = JSON.parse(localStorage.getItem('entregadorLogado'));
+        if (!entregador) window.location.href = 'login.html';
+        
+        let entregadorStatus = 'offline';
+        
+        // Carregar pedidos disponíveis
+        async function carregarPedidos() {
+            const container = document.getElementById('pedidosContainer');
+            
+            // Buscar pedidos que estão "prontos_para_entrega"
+            const q = query(collection(db, "pedidos"), where("status", "==", "pronto_entrega"));
+            const snapshot = await getDocs(q);
+            
+            if (snapshot.empty) {
+                container.innerHTML = `
+                    <div style="text-align: center; padding: 40px;">
+                        <span style="font-size: 48px;">🛵</span>
+                        <p style="margin-top: 16px; color: #666;">Nenhum pedido disponível no momento</p>
+                        <p style="font-size: 14px; color: #999;">Novos pedidos aparecerão aqui automaticamente</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            container.innerHTML = '';
+            snapshot.forEach(docPedido => {
+                const p = docPedido.data();
+                container.innerHTML += `
+                    <div class="pedido-card" data-id="${docPedido.id}">
+                        <div class="pedido-header">
+                            <span class="pedido-numero">#${docPedido.id.slice(-6)}</span>
+                            <span class="pedido-valor">R$ ${p.total.toFixed(2)}</span>
+                        </div>
+                        <div class="pedido-restaurante">🍔 ${p.restauranteNome || 'Restaurante'}</div>
+                        <div class="pedido-endereco">📍 Restaurante: ${p.enderecoRestaurante || 'Endereço não informado'}</div>
+                        <div class="pedido-endereco">🏠 Cliente: ${p.enderecoCliente || 'Endereço não informado'}</div>
+                        <div class="pedido-taxa">💰 Taxa de entrega: R$ ${(p.taxaEntrega || 5.00).toFixed(2)}</div>
+                        <div class="pedido-itens" style="font-size: 13px; color: #666; margin-top: 8px;">
+                            📦 ${p.itens?.length || 0} itens
+                        </div>
+                        <button class="btn-aceitar" onclick="aceitarPedido('${docPedido.id}', ${p.taxaEntrega || 5})">✅ Aceitar pedido</button>
+                    </div>
+                `;
+            });
+        }
+        
+        // Aceitar pedido
+        window.aceitarPedido = async (pedidoId, taxa) => {
+            const entregadorRef = doc(db, "entregadores", entregador.email);
+            const entregadorDoc = await getDoc(entregadorRef);
+            
+            if (entregadorDoc.data().status !== 'online') {
+                alert('Você precisa estar ONLINE para aceitar pedidos!');
+                return;
+            }
+            
+            await updateDoc(doc(db, "pedidos", pedidoId), {
+                status: "entregador_aceito",
+                entregadorId: entregador.email,
+                entregadorNome: entregador.nome,
+                taxaEntrega: taxa,
+                aceitoEm: new Date().toISOString()
+            });
+            
+            await updateDoc(entregadorRef, {
+                pedidoAtual: pedidoId
+            });
+            
+            alert('✅ Pedido aceito! Acompanhe no menu "Ativo"');
+            window.location.href = 'pedido-ativo.html';
+        };
+        
+        // Alternar status online/offline
+        async function toggleStatus() {
+            const entregadorRef = doc(db, "entregadores", entregador.email);
+            const novoStatus = entregadorStatus === 'online' ? 'offline' : 'online';
+            await updateDoc(entregadorRef, { status: novoStatus });
+            entregadorStatus = novoStatus;
+            document.getElementById('statusBtn').innerHTML = entregadorStatus === 'online' ? '🟢 Online' : '🔴 Offline';
+            document.getElementById('statusBtn').style.background = entregadorStatus === 'online' ? '#27ae60' : 'rgba(255,255,255,0.2)';
+        }
+        
+        document.getElementById('statusBtn').addEventListener('click', toggleStatus);
+        
+        // Inicializar
+        async function init() {
+            const entregadorRef = doc(db, "entregadores", entregador.email);
+            const entregadorDoc = await getDoc(entregadorRef);
+            if (entregadorDoc.exists()) {
+                entregadorStatus = entregadorDoc.data().status || 'offline';
+                document.getElementById('statusBtn').innerHTML = entregadorStatus === 'online' ? '🟢 Online' : '🔴 Offline';
+            }
+            carregarPedidos();
+            
+            // Escutar novos pedidos em tempo real
+            onSnapshot(query(collection(db, "pedidos"), where("status", "==", "pronto_entrega")), () => {
+                carregarPedidos();
+            });
+        }
+        
+        init();
+        
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js');
+        }
+    </script>
+</body>
+</html>
