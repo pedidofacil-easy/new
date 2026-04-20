@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Pedido Ativo - PedidoFácil Entregador</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="manifest.json">
+</head>
+<body>
+    <div class="header">
+        <h1>🟡 Pedido Ativo</h1>
+    </div>
+    
+    <div class="content" id="content">
+        <div id="pedidoContainer" style="text-align: center; padding: 40px;">
+            Carregando...
+        </div>
+    </div>
+    
+    <div class="bottom-nav">
+        <a href="dashboard.html" class="nav-item">
+            <span>📋</span>
+            Pedidos
+        </a>
+        <a href="pedido-ativo.html" class="nav-item active">
+            <span>🟡</span>
+            Ativo
+        </a>
+        <a href="historico.html" class="nav-item">
+            <span>💰</span>
+            Ganhos
+        </a>
+    </div>
+    
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-app.js";
+        import { getFirestore, doc, getDoc, updateDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-firestore.js";
+        
+        const firebaseConfig = {
+            apiKey: "AIzaSyA8qo7qFYXlqEriMBeyoyELwtiRPGxpVc4",
+            authDomain: "lanchepodpah.firebaseapp.com",
+            projectId: "lanchepodpah",
+            storageBucket: "lanchepodpah.firebasestorage.app",
+            messagingSenderId: "451860544292",
+            appId: "1:451860544292:web:4dbbe9c0c53e8cd0cf91b1"
+        };
+        
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        
+        const entregador = JSON.parse(localStorage.getItem('entregadorLogado'));
+        if (!entregador) window.location.href = 'login.html';
+        
+        let pedidoAtualId = null;
+        
+        async function carregarPedidoAtivo() {
+            const entregadorRef = doc(db, "entregadores", entregador.email);
+            const entregadorDoc = await getDoc(entregadorRef);
+            pedidoAtualId = entregadorDoc.data().pedidoAtual;
+            
+            if (!pedidoAtualId) {
+                document.getElementById('pedidoContainer').innerHTML = `
+                    <div style="text-align: center; padding: 40px;">
+                        <span style="font-size: 48px;">🛵</span>
+                        <p style="margin-top: 16px;">Nenhum pedido ativo no momento</p>
+                        <a href="dashboard.html" style="display: inline-block; margin-top: 20px; background: #e67e22; color: white; padding: 12px 24px; border-radius: 50px; text-decoration: none;">Ver pedidos disponíveis</a>
+                    </div>
+                `;
+                return;
+            }
+            
+            // Escutar mudanças no pedido em tempo real
+            onSnapshot(doc(db, "pedidos", pedidoAtualId), (docSnap) => {
+                if (!docSnap.exists()) {
+                    document.getElementById('pedidoContainer').innerHTML = '<p>Pedido não encontrado</p>';
+                    return;
+                }
+                const p = docSnap.data();
+                renderizarPedido(docSnap.id, p);
+            });
+        }
+        
+        function renderizarPedido(id, p) {
+            const statusMap = {
+                'entregador_aceito': { text: '✅ Aceito', step: 1 },
+                'indo_buscar': { text: '🛵 Indo buscar', step: 2 },
+                'pegou_pedido': { text: '📦 Pegou o pedido', step: 3 },
+                'indo_entregar': { text: '🏠 Indo entregar', step: 4 },
+                'entregue': { text: '🎉 Entregue!', step: 5 }
+            };
+            
+            const currentStatus = p.status || 'entregador_aceito';
+            const currentStep = statusMap[currentStatus]?.step || 1;
+            
+            const steps = [
+                { name: 'Aceito', icon: '✅', step: 1 },
+                { name: 'Buscar', icon: '🛵', step: 2 },
+                { name: 'Pegou', icon: '📦', step: 3 },
+                { name: 'Entregar', icon: '🏠', step: 4 },
+                { name: 'Entregue', icon: '🎉', step: 5 }
+            ];
+            
+            let stepsHtml = '<div class="status-progress">';
+            steps.forEach(step => {
+                let statusClass = '';
+                if (step.step < currentStep) statusClass = 'completed';
+                if (step.step === currentStep) statusClass = 'active';
+                stepsHtml += `
+                    <div class="status-step ${statusClass}">
+                        <div class="circle">${step.icon}</div>
+                        <span>${step.name}</span>
+                    </div>
+                `;
+            });
+            stepsHtml += '</div>';
+            
+            let botoesHtml = '';
+            if (currentStatus === 'entregador_aceito') {
+                botoesHtml = `<button class="btn btn-primary" onclick="atualizarStatus('indo_buscar')">🛵 Indo buscar no restaurante</button>`;
+            } else if (currentStatus === 'indo_buscar') {
+                botoesHtml = `<button class="btn btn-primary" onclick="atualizarStatus('pegou_pedido')">📦 Peguei o pedido</button>`;
+            } else if (currentStatus === 'pegou_pedido') {
+                botoesHtml = `<button class="btn btn-primary" onclick="atualizarStatus('indo_entregar')">🏠 Indo entregar</button>`;
+            } else if (currentStatus === 'indo_entregar') {
+                botoesHtml = `<button class="btn btn-primary" onclick="atualizarStatus('entregue')">🎉 Entregue!</button>`;
+            } else if (currentStatus === 'entregue') {
+                botoesHtml = `<div style="background: #27ae60; color: white; padding: 15px; border-radius: 12px; text-align: center;">✅ Pedido finalizado! Você recebeu R$ ${(p.taxaEntrega || 5).toFixed(2)}</div>`;
+            }
+            
+            document.getElementById('pedidoContainer').innerHTML = `
+                <div class="pedido-card">
+                    <div class="pedido-header">
+                        <span class="pedido-numero">#${id.slice(-6)}</span>
+                        <span class="pedido-valor">R$ ${p.total?.toFixed(2) || 0}</span>
+                    </div>
+                    <div class="pedido-restaurante">🍔 ${p.restauranteNome || 'Restaurante'}</div>
+                    <div class="pedido-endereco">📍 Restaurante: ${p.enderecoRestaurante || 'Não informado'}</div>
+                    <div class="pedido-endereco">🏠 Cliente: ${p.enderecoCliente || 'Não informado'}</div>
+                    <div class="pedido-taxa">💰 Taxa: R$ ${(p.taxaEntrega || 5).toFixed(2)}</div>
+                    
+                    ${stepsHtml}
+                    
+                    <div style="margin-top: 20px;">
+                        ${botoesHtml}
+                    </div>
+                    
+                    <div style="margin-top: 15px;">
+                        <button class="btn-outline" onclick="window.open('https://maps.google.com/?q=${encodeURIComponent(p.enderecoRestaurante || '')}', '_blank')">🗺️ Abrir mapa</button>
+                    </div>
+                </div>
+            `;
+        }
+        
+        window.atualizarStatus = async (novoStatus) => {
+            if (!pedidoAtualId) return;
+            
+            await updateDoc(doc(db, "pedidos", pedidoAtualId), {
+                status: novoStatus,
+                [`status_${novoStatus}_em`]: new Date().toISOString()
+            });
+            
+            if (novoStatus === 'entregue') {
+                // Adicionar saldo ao entregador
+                const pedidoDoc = await getDoc(doc(db, "pedidos", pedidoAtualId));
+                const taxa = pedidoDoc.data().taxaEntrega || 5;
+                
+                const entregadorRef = doc(db, "entregadores", entregador.email);
+                const entregadorDoc = await getDoc(entregadorRef);
+                const novoSaldo = (entregadorDoc.data().saldo || 0) + taxa;
+                
+                await updateDoc(entregadorRef, {
+                    saldo: novoSaldo,
+                    pedidoAtual: null
+                });
+                
+                // Criar registro no histórico
+                const historicoRef = collection(db, "entregas");
+                await addDoc(historicoRef, {
+                    entregadorId: entregador.email,
+                    pedidoId: pedidoAtualId,
+                    valor: taxa,
+                    data: new Date().toISOString()
+                });
+                
+                pedidoAtualId = null;
+                setTimeout(() => {
+                    window.location.href = 'dashboard.html';
+                }, 2000);
+            }
+        };
+        
+        carregarPedidoAtivo();
+        
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js');
+        }
+    </script>
+</body>
+</html>
