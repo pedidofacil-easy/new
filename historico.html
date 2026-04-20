@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Histórico - PedidoFácil Entregador</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="manifest.json">
+</head>
+<body>
+    <div class="header">
+        <h1>💰 Meus Ganhos</h1>
+    </div>
+    
+    <div class="content">
+        <div id="ganhosContainer" style="margin: 16px;">
+            <div class="ganhos-card">
+                <div class="ganhos-label">Saldo atual</div>
+                <div class="ganhos-valor" id="saldoAtual">R$ 0,00</div>
+                <button class="btn" style="background: white; color: #e67e22; margin-top: 16px;" onclick="solicitarSaque()">💸 Solicitar saque</button>
+            </div>
+        </div>
+        
+        <div style="margin: 16px;">
+            <h3>📋 Últimas entregas</h3>
+            <div id="historicoLista"></div>
+        </div>
+    </div>
+    
+    <div class="bottom-nav">
+        <a href="dashboard.html" class="nav-item">
+            <span>📋</span>
+            Pedidos
+        </a>
+        <a href="pedido-ativo.html" class="nav-item">
+            <span>🟡</span>
+            Ativo
+        </a>
+        <a href="historico.html" class="nav-item active">
+            <span>💰</span>
+            Ganhos
+        </a>
+    </div>
+    
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-app.js";
+        import { getFirestore, doc, getDoc, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-firestore.js";
+        
+        const firebaseConfig = {
+            apiKey: "AIzaSyA8qo7qFYXlqEriMBeyoyELwtiRPGxpVc4",
+            authDomain: "lanchepodpah.firebaseapp.com",
+            projectId: "lanchepodpah",
+            storageBucket: "lanchepodpah.firebasestorage.app",
+            messagingSenderId: "451860544292",
+            appId: "1:451860544292:web:4dbbe9c0c53e8cd0cf91b1"
+        };
+        
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        
+        const entregador = JSON.parse(localStorage.getItem('entregadorLogado'));
+        if (!entregador) window.location.href = 'login.html';
+        
+        async function carregarDados() {
+            // Saldo atual
+            const entregadorRef = doc(db, "entregadores", entregador.email);
+            const entregadorDoc = await getDoc(entregadorRef);
+            const saldo = entregadorDoc.data().saldo || 0;
+            document.getElementById('saldoAtual').innerHTML = `R$ ${saldo.toFixed(2)}`;
+            
+            // Histórico
+            const q = query(collection(db, "entregas"), where("entregadorId", "==", entregador.email));
+            const snapshot = await getDocs(q);
+            
+            const container = document.getElementById('historicoLista');
+            if (snapshot.empty) {
+                container.innerHTML = '<p style="text-align: center; color: #999;">Nenhuma entrega realizada ainda</p>';
+                return;
+            }
+            
+            let total = 0;
+            let html = '';
+            snapshot.forEach(doc => {
+                const entrega = doc.data();
+                total += entrega.valor;
+                const data = new Date(entrega.data).toLocaleDateString('pt-BR');
+                html += `
+                    <div class="historico-item">
+                        <div>
+                            <div><strong>Pedido #${entrega.pedidoId?.slice(-6)}</strong></div>
+                            <div class="historico-data">${data}</div>
+                        </div>
+                        <div class="historico-valor">R$ ${entrega.valor.toFixed(2)}</div>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+        }
+        
+        window.solicitarSaque = () => {
+            alert('💰 Solicitação de saque enviada! O valor será transferido para sua conta em até 3 dias úteis.');
+        };
+        
+        carregarDados();
+        
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js');
+        }
+    </script>
+</body>
+</html>
