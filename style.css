@@ -1,0 +1,257 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: #f8f9fa;
+    color: #1a1a2e;
+}
+
+/* HEADER */
+.header {
+    background: #e67e22;
+    color: white;
+    padding: 20px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.header h1 {
+    font-size: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.status-online {
+    background: #27ae60;
+    padding: 4px 12px;
+    border-radius: 50px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+/* PEDIDOS */
+.pedido-card {
+    background: white;
+    margin: 12px;
+    padding: 16px;
+    border-radius: 16px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    transition: transform 0.2s;
+}
+
+.pedido-card:active {
+    transform: scale(0.98);
+}
+
+.pedido-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 12px;
+}
+
+.pedido-numero {
+    font-weight: 700;
+    color: #e67e22;
+}
+
+.pedido-valor {
+    font-weight: 700;
+    font-size: 18px;
+}
+
+.pedido-restaurante {
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
+.pedido-endereco {
+    font-size: 13px;
+    color: #666;
+    margin-bottom: 4px;
+}
+
+.pedido-taxa {
+    font-size: 14px;
+    color: #27ae60;
+    font-weight: 600;
+    margin-top: 8px;
+}
+
+.btn-aceitar {
+    background: #e67e22;
+    color: white;
+    border: none;
+    padding: 12px;
+    border-radius: 12px;
+    font-weight: 600;
+    width: 100%;
+    margin-top: 12px;
+    cursor: pointer;
+}
+
+.btn-aceitar:active {
+    background: #d35400;
+}
+
+/* BOTTOM NAVIGATION */
+.bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: white;
+    display: flex;
+    justify-content: space-around;
+    padding: 12px 20px;
+    border-top: 1px solid #eee;
+    box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
+}
+
+.nav-item {
+    text-align: center;
+    text-decoration: none;
+    color: #999;
+    font-size: 12px;
+    transition: 0.2s;
+}
+
+.nav-item.active {
+    color: #e67e22;
+}
+
+.nav-item span {
+    display: block;
+    font-size: 24px;
+    margin-bottom: 4px;
+}
+
+/* GANHOS */
+.ganhos-card {
+    background: linear-gradient(135deg, #e67e22, #d35400);
+    color: white;
+    margin: 16px;
+    padding: 24px;
+    border-radius: 20px;
+    text-align: center;
+}
+
+.ganhos-valor {
+    font-size: 48px;
+    font-weight: 800;
+    margin: 10px 0;
+}
+
+.ganhos-label {
+    font-size: 14px;
+    opacity: 0.9;
+}
+
+/* HISTÓRICO */
+.historico-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 16px;
+    border-bottom: 1px solid #eee;
+    background: white;
+    margin: 8px 16px;
+    border-radius: 12px;
+}
+
+.historico-data {
+    font-size: 12px;
+    color: #999;
+}
+
+.historico-valor {
+    font-weight: 700;
+    color: #27ae60;
+}
+
+/* STATUS DO PEDIDO */
+.status-progress {
+    display: flex;
+    justify-content: space-between;
+    margin: 20px;
+    padding: 20px;
+    background: white;
+    border-radius: 16px;
+}
+
+.status-step {
+    text-align: center;
+    flex: 1;
+}
+
+.status-step .circle {
+    width: 40px;
+    height: 40px;
+    background: #ddd;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 8px;
+    font-size: 20px;
+}
+
+.status-step.active .circle {
+    background: #e67e22;
+    color: white;
+}
+
+.status-step.completed .circle {
+    background: #27ae60;
+    color: white;
+}
+
+.status-step span {
+    font-size: 11px;
+    color: #666;
+}
+
+/* BOTÕES */
+.btn {
+    padding: 14px;
+    border: none;
+    border-radius: 50px;
+    font-weight: 600;
+    font-size: 16px;
+    cursor: pointer;
+    width: 100%;
+    margin: 8px 0;
+}
+
+.btn-primary {
+    background: #e67e22;
+    color: white;
+}
+
+.btn-outline {
+    background: transparent;
+    border: 1px solid #e67e22;
+    color: #e67e22;
+}
+
+/* FORMULÁRIO */
+.form-group {
+    margin: 16px;
+}
+
+.form-group input {
+    width: 100%;
+    padding: 14px;
+    border: 1px solid #ddd;
+    border-radius: 12px;
+    font-size: 16px;
+}
+
+/* ESPAÇO PARA O BOTTOM NAV */
+.content {
+    padding-bottom: 80px;
+}
